@@ -34,7 +34,7 @@ class TransformerPredictor(nn.Module):
     """
     A Transformer-based model for tabular regression.
     """
-    def __init__(self, num_features, d_model=64, nhead=16, num_encoder_layers=3, dim_feedforward=128, dropout=0.1):
+    def __init__(self, num_features, d_model=128, nhead=8, num_encoder_layers=3, dim_feedforward=128, dropout=0.1):
         super(TransformerPredictor, self).__init__()
         self.d_model = d_model
         # Input embedding layer to project features to d_model
@@ -76,7 +76,7 @@ class TransformerPredictor(nn.Module):
         return output
 
 # --- Training and Evaluation Function ---
-def run_transformer_pipeline(X_train, y_train, X_test, y_test, num_features, model_path, epochs=100, batch_size=32, lr=0.001):
+def run_transformer_pipeline(X_train, y_train, X_test, y_test, num_features, model_path, epochs=500, batch_size=32, lr=0.0003):
     """
     Handles the entire process of scaling, training, and evaluating the Transformer model.
     """
@@ -95,7 +95,7 @@ def run_transformer_pipeline(X_train, y_train, X_test, y_test, num_features, mod
     # Initialize model, loss, and optimizer
     model = TransformerPredictor(num_features=num_features).to(device)
     criterion = nn.MSELoss()
-    optimizer = torch.optim.AdamW(model.parameters(), lr=lr)
+    optimizer = torch.optim.AdamW(model.parameters(), lr=lr, weight_decay=0.01)
     
     # Training loop
     for epoch in range(epochs):
