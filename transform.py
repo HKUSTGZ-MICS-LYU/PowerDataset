@@ -34,7 +34,7 @@ class TransformerPredictor(nn.Module):
     """
     A Transformer-based model for tabular regression.
     """
-    def __init__(self, num_features, d_model=64, nhead=4, num_encoder_layers=3, dim_feedforward=128, dropout=0.1):
+    def __init__(self, num_features, d_model=64, nhead=16, num_encoder_layers=3, dim_feedforward=128, dropout=0.1):
         super(TransformerPredictor, self).__init__()
         self.d_model = d_model
         # Input embedding layer to project features to d_model
@@ -76,7 +76,7 @@ class TransformerPredictor(nn.Module):
         return output
 
 # --- Training and Evaluation Function ---
-def run_transformer_pipeline(X_train, y_train, X_test, y_test, num_features, model_path, epochs=50, batch_size=32, lr=0.001):
+def run_transformer_pipeline(X_train, y_train, X_test, y_test, num_features, model_path, epochs=100, batch_size=32, lr=0.001):
     """
     Handles the entire process of scaling, training, and evaluating the Transformer model.
     """
@@ -169,7 +169,7 @@ target_col = 'Power3'
 print("--- Scenario 1 (Filtered Data): Predicting without floorplan power ---")
 df_chipfinish = df_filtered[df_filtered['Backend Phase'] == 'chipfinish'].copy()
 X1 = df_chipfinish[features_base].values
-y1 = df_chipfinish[target_col].values
+y1 = df_chipfinish[target_col].values * 1e-6
 X1_train, X1_test, y1_train, y1_test = train_test_split(X1, y1, test_size=0.2, random_state=42)
 run_transformer_pipeline(X1_train, y1_train, X1_test, y1_test, X1.shape[1], 'transformer_model_no_floorplan.pth')
 
@@ -184,6 +184,6 @@ df_merged = pd.merge(df_fp_pivot, df_params, on='Design Name').dropna()
 features_with_floorplan = ['floorplan'] + features_base
 target_chipfinish = 'chipfinish'
 X2 = df_merged[features_with_floorplan].values
-y2 = df_merged[target_chipfinish].values
+y2 = df_merged[target_chipfinish].values * 1e-6
 X2_train, X2_test, y2_train, y2_test = train_test_split(X2, y2, test_size=0.2, random_state=42)
 run_transformer_pipeline(X2_train, y2_train, X2_test, y2_test, X2.shape[1], 'transformer_model_with_floorplan.pth')
