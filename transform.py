@@ -1,21 +1,13 @@
-# To run this script on a GPU, you need a machine with an NVIDIA GPU, CUDA,
-# and PyTorch installed.
-# To run on CPU, only PyTorch is required.
-# Example installation:
-# pip install torch pandas scikit-learn joblib
-
 import pandas as pd
 import numpy as np
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import mean_absolute_error, r2_score, mean_absolute_percentage_error
 from sklearn.preprocessing import StandardScaler
-import joblib
 import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader, TensorDataset
 
 # --- Manual Control & Device Setup ---
-# Set this to True to bypass GPU checks and force CPU execution.
 FORCE_CPU = False
 
 if not FORCE_CPU and torch.cuda.is_available():
@@ -31,10 +23,7 @@ else:
 
 # --- Transformer Model Definition ---
 class TransformerPredictor(nn.Module):
-    """
-    A Transformer-based model for tabular regression.
-    """
-    def __init__(self, num_features, d_model=128, nhead=8, num_encoder_layers=3, dim_feedforward=128, dropout=0.1):
+    def __init__(self, num_features, d_model=256, nhead=8, num_encoder_layers=8, dim_feedforward=256, dropout=0.1):
         super(TransformerPredictor, self).__init__()
         self.d_model = d_model
         # Input embedding layer to project features to d_model
@@ -54,31 +43,19 @@ class TransformerPredictor(nn.Module):
         self.output_layer = nn.Linear(d_model, 1)
         
     def forward(self, src):
-        # src shape: (batch_size, num_features)
-        
-        # 1. Embed input features
         embedded_src = self.input_embedding(src)  # -> (batch_size, d_model)
-        
-        # 2. Add a sequence dimension for the transformer
-        # The transformer expects a sequence, but we have a single set of features.
-        # We treat it as a sequence of length 1.
         transformer_input = embedded_src.unsqueeze(1)  # -> (batch_size, 1, d_model)
-        
-        # 3. Pass through transformer encoder
         transformer_output = self.transformer_encoder(transformer_input) # -> (batch_size, 1, d_model)
-        
-        # 4. Remove the sequence dimension
         transformer_output = transformer_output.squeeze(1) # -> (batch_size, d_model)
-        
-        # 5. Pass through the final regression layer
         output = self.output_layer(transformer_output) # -> (batch_size, 1)
-        
         return output
 
+
 # --- Training and Evaluation Function ---
-def run_transformer_pipeline(X_train, y_train, X_test, y_test, num_features, model_path, epochs=500, batch_size=32, lr=0.0003):
+def run_transformer_pipeline(X_train, y_train, X_test, y_test, num_features, model_path, epochs=1000, batch_size=8, lr=0.00005, patience=100):
     """
     Handles the entire process of scaling, training, and evaluating the Transformer model.
+    Includes learning rate scheduler and early stopping.
     """
     # Scale features
     scaler = StandardScaler()
@@ -95,8 +72,15 @@ def run_transformer_pipeline(X_train, y_train, X_test, y_test, num_features, mod
     # Initialize model, loss, and optimizer
     model = TransformerPredictor(num_features=num_features).to(device)
     criterion = nn.MSELoss()
-    optimizer = torch.optim.AdamW(model.parameters(), lr=lr, weight_decay=0.01)
-    
+    optimizer = torch.optim.AdamW(model.parameters(), lr=lr, weight_decay=0.05)
+    # scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'min', patience=10)
+    scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=epochs)
+
+
+    # Early stopping variables
+    best_loss = float('inf')
+    patience_counter = 0
+
     # Training loop
     for epoch in range(epochs):
         model.train()
@@ -111,8 +95,28 @@ def run_transformer_pipeline(X_train, y_train, X_test, y_test, num_features, mod
             optimizer.step()
             total_loss += loss.item()
         
+        # Check if validation loss improves
+        # scheduler.step(total_loss / len(train_loader))
+        scheduler.step()
+
         if (epoch + 1) % 10 == 0:
             print(f'Epoch [{epoch+1}/{epochs}], Loss: {total_loss/len(train_loader):.4f}')
+        
+        # Early stopping
+        if total_loss < best_loss:
+            best_loss = total_loss
+            patience_counter = 0
+            # Save the best model
+            torch.save({
+                'model_state_dict': model.state_dict(),
+                'scaler': scaler
+            }, model_path)
+        else:
+            patience_counter += 1
+
+        if patience_counter >= patience:
+            print(f"Early stopping at epoch {epoch + 1}")
+            break
 
     # Evaluation loop
     model.eval()
@@ -133,21 +137,16 @@ def run_transformer_pipeline(X_train, y_train, X_test, y_test, num_features, mod
     mape = mean_absolute_percentage_error(all_targets, all_preds)
     r2 = r2_score(all_targets, all_preds)
     
-    # Print results and save model
+    # Print results
     print(f"MAE: {mae:.2f}")
     print(f"MAPE: {mape:.2%}")
     print(f"R^2 Score: {r2:.4f}")
     
-    torch.save({
-        'model_state_dict': model.state_dict(),
-        'scaler': scaler
-    }, model_path)
     print(f"Model and scaler saved to '{model_path}'\n")
 
 
 # --- Main Script Logic ---
-# Load the dataset
-df = pd.read_csv('power_with_vex_parameters.csv')
+df = pd.read_csv('preprocessed_data.csv')
 
 # --- Step 1: Filter for designs with complete backend phases ---
 print("--- Filtering Data ---")
@@ -173,7 +172,7 @@ y1 = df_chipfinish[target_col].values * 1e-6
 X1_train, X1_test, y1_train, y1_test = train_test_split(X1, y1, test_size=0.2, random_state=42)
 run_transformer_pipeline(X1_train, y1_train, X1_test, y1_test, X1.shape[1], 'transformer_model_no_floorplan.pth')
 
-# --- Scenario 2: Predicting with floorplan power ---
+# # --- Scenario 2: Predicting with floorplan power ---
 print("--- Scenario 2 (Filtered Data): Predicting with floorplan power as a feature ---")
 df_fp_pivot = df_filtered[df_filtered['Backend Phase'].isin(['chipfinish', 'floorplan'])].pivot_table(
     index='Design Name', columns='Backend Phase', values='Power3'
