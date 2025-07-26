@@ -1,0 +1,170 @@
+GPU is available. Using CUDA for training.
+Loading data and starting three-stage corner training...
+--- Enhanced Data Preprocessing for Corner-Specific Models ---
+Added 7 engineered features for corner-specific power prediction
+Data loaded and preprocessed:
+   1013 designs
+   45 features
+   ⚡ 3 power corners (Fast, Slow, Typical)
+Initializing Three-Stage Corner Training
+Dataset: 1013 designs, 45 features
+Corners: ['Fast', 'Slow', 'Typical']
+THREE-STAGE CORNER-SPECIFIC TRAINING PIPELINE
+================================================================================
+
+============================================================
+STAGE 1: CORNER-SPECIFIC MODEL TRAINING
+============================================================
+
+Training Fast Corner Model
+----------------------------------------
+   Data: 810 train, 203 test
+   Power range: 0.313660 - 52.565000 mW
+Initializing Fast Corner Model: High dynamic power, frequency sensitive
+   d_model=128, nhead=8, layers=4
+   Starting training for 300 epochs...
+   Epoch [  1/300]: Loss=0.371305, Val MAPE=108.53%, Val R²=0.0684
+   Epoch [ 21/300]: Loss=0.026716, Val MAPE=36.07%, Val R²=0.7872
+   Epoch [ 41/300]: Loss=0.017290, Val MAPE=33.69%, Val R²=0.8856
+   Epoch [ 61/300]: Loss=0.015534, Val MAPE=33.66%, Val R²=0.8976
+   Epoch [ 81/300]: Loss=0.010355, Val MAPE=32.36%, Val R²=0.9161
+   Epoch [101/300]: Loss=0.010323, Val MAPE=30.64%, Val R²=0.9197
+   Epoch [121/300]: Loss=0.009483, Val MAPE=31.30%, Val R²=0.9308
+   ⏹️ Early stopping at epoch 133
+   Final Results: MAE=1.499292, MAPE=31.74%, R²=0.9229
+
+Training Slow Corner Model
+----------------------------------------
+   Data: 810 train, 203 test
+   Power range: 0.179890 - 15.654000 mW
+Initializing Slow Corner Model: High leakage power, area sensitive
+   d_model=128, nhead=4, layers=3
+   Starting training for 300 epochs...
+   Epoch [  1/300]: Loss=0.284921, Val MAPE=85.62%, Val R²=0.1165
+   Epoch [ 21/300]: Loss=0.020882, Val MAPE=31.52%, Val R²=0.8623
+   Epoch [ 41/300]: Loss=0.013039, Val MAPE=28.05%, Val R²=0.8626
+   Epoch [ 61/300]: Loss=0.014123, Val MAPE=26.87%, Val R²=0.8838
+   Epoch [ 81/300]: Loss=0.010180, Val MAPE=27.62%, Val R²=0.9082
+   Epoch [101/300]: Loss=0.008614, Val MAPE=26.72%, Val R²=0.9122
+   ⏹️ Early stopping at epoch 101
+   Final Results: MAE=0.532735, MAPE=29.58%, R²=0.8961
+
+Training Typical Corner Model
+----------------------------------------
+   Data: 810 train, 203 test
+   Power range: 0.233460 - 32.082000 mW
+Initializing Typical Corner Model: Balanced power characteristics
+   d_model=128, nhead=8, layers=4
+   Starting training for 300 epochs...
+   Epoch [  1/300]: Loss=0.302189, Val MAPE=118.87%, Val R²=-0.0455
+   Epoch [ 21/300]: Loss=0.028455, Val MAPE=39.40%, Val R²=0.7599
+   Epoch [ 41/300]: Loss=0.016449, Val MAPE=33.58%, Val R²=0.8923
+   Epoch [ 61/300]: Loss=0.011347, Val MAPE=32.46%, Val R²=0.8949
+   Epoch [ 81/300]: Loss=0.012229, Val MAPE=31.24%, Val R²=0.9144
+   Epoch [101/300]: Loss=0.009747, Val MAPE=28.31%, Val R²=0.9207
+   Epoch [121/300]: Loss=0.008661, Val MAPE=29.88%, Val R²=0.9213
+   Epoch [141/300]: Loss=0.006673, Val MAPE=28.27%, Val R²=0.9298
+   Epoch [161/300]: Loss=0.006599, Val MAPE=26.85%, Val R²=0.9379
+   Epoch [181/300]: Loss=0.005874, Val MAPE=26.95%, Val R²=0.9383
+   Epoch [201/300]: Loss=0.006169, Val MAPE=27.43%, Val R²=0.9359
+   Epoch [221/300]: Loss=0.005258, Val MAPE=26.04%, Val R²=0.9341
+   ⏹️ Early stopping at epoch 234
+   Final Results: MAE=0.878138, MAPE=27.21%, R²=0.9272
+
+============================================================
+STAGE 2: FEATURE WEIGHT OPTIMIZATION ANALYSIS
+============================================================
+Physics-aware feature weighting integrated in Stage 1 models
+
+Fast Corner Feature Analysis:
+------------------------------
+   Top 10 Most Important Features:
+       1. with-gshare              : 1.416207
+       2. fetch-l1                 : 1.257802
+       3. fetch-l1-complexity      : 1.250218
+       4. cache_total_complexity   : 1.244733
+       5. with-aligner-buffer      : 1.241868
+       6. lsu-l1                   : 1.236024
+       7. lsu-l1-complexity        : 1.184343
+       8. lsu-l1-sets              : 1.171031
+       9. lsu-l1-ways              : 1.168028
+      10. execution_complexity     : 1.145026
+
+Slow Corner Feature Analysis:
+------------------------------
+   Top 10 Most Important Features:
+       1. cache_total_complexity   : 1.760534
+       2. lsu-l1-capacity          : 1.587882
+       3. with-gshare              : 1.505843
+       4. lsu-l1                   : 1.490377
+       5. lsu-l1-ways              : 1.417705
+       6. lsu-l1-sets              : 1.307622
+       7. xlen                     : 1.296376
+       8. fetch-l1-ways            : 1.284827
+       9. lsu-l1-complexity        : 1.274691
+      10. fetch-l1-capacity        : 1.203062
+
+Typical Corner Feature Analysis:
+------------------------------
+   Top 10 Most Important Features:
+       1. cache_total_complexity   : 1.100090
+       2. with-gshare              : 1.042597
+       3. branch_pred_complexity   : 0.918756
+       4. lsu-l1                   : 0.914054
+       5. lsu-l1-store-buffer-ops  : 0.912938
+       6. with-rvc                 : 0.907131
+       7. lsu-l1-complexity        : 0.893494
+       8. lsu-l1-capacity          : 0.861515
+       9. fetch-l1-complexity      : 0.855972
+      10. lsu-l1-ways              : 0.847665
+
+============================================================
+Stage 2: ENSEMBLE INTEGRATION
+============================================================
+Collecting corner predictions...
+   Fast    : 1013 predictions collected
+   Slow    : 1013 predictions collected
+   Typical : 1013 predictions collected
+
+Testing WEIGHTED_AVG integration:
+   Results: MAE=0.271238, MAPE=8.05%, R²=0.9826
+
+Testing ADAPTIVE integration:
+   Results: MAE=0.485246, MAPE=10.54%, R²=0.9532
+   ⚖️  Average Weights: Fast=0.307 Slow=0.231 Typical=0.462 
+
+Testing WORST_CASE integration:
+   Results: MAE=2.127572, MAPE=30.22%, R²=0.7794
+
+Testing RMS integration:
+   Results: MAE=0.486239, MAPE=10.58%, R²=0.9673
+
+================================================================================
+FINAL RESULTS SUMMARY
+================================================================================
+
+Stage 1 - Corner-Specific Models:
+   Fast    : MAPE=31.74%, R²=0.9229
+   Slow    : MAPE=29.58%, R²=0.8961
+   Typical : MAPE=27.21%, R²=0.9272
+
+Stage 2 - Ensemble Integration:
+    weighted_avg: MAPE= 8.05%, R²=0.9826
+    adaptive    : MAPE=10.54%, R²=0.9532
+    rms         : MAPE=10.58%, R²=0.9673
+    worst_case  : MAPE=30.22%, R²=0.7794
+
+Key Achievements:
+   Corner-specific average: 29.51% MAPE
+   Best ensemble method: 8.05% MAPE (weighted_avg)
+   Estimated improvement: -7.5 percentage points
+   Physics-aware feature weighting: Implemented
+   Uncertainty-aware ensemble: Implemented
+
+Generated Model Files:
+   - fast_corner_model_unified.pth
+   - fast_corner_scaler_unified.pkl
+   - slow_corner_model_unified.pth
+   - slow_corner_scaler_unified.pkl
+   - typical_corner_model_unified.pth
+   - typical_corner_scaler_unified.pkl
